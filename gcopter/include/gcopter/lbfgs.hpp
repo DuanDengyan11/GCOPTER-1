@@ -285,6 +285,7 @@ namespace lbfgs
                                         const callback_data_t &cd,
                                         const lbfgs_parameter_t &param)
     {
+        //参数依次为 决策变量，代价函数，梯度，步长，梯度的负，当前决策变量，当前梯度，步长最小值、最大值，cd, param
         int count = 0;
         bool brackt = false, touched = false;
         double finit, dginit, dgtest, dstest;
@@ -296,7 +297,7 @@ namespace lbfgs
             return LBFGSERR_INVALIDPARAMETERS;
         }
 
-        /* Compute the initial gradient in the search direction. */
+        /* Compute the initial gradient in the search direction. 计算搜索方向的初始梯度*/
         dginit = gp.dot(s);
 
         /* Make sure that s points to a descent direction. */
@@ -514,33 +515,34 @@ namespace lbfgs
         cd.proc_stepbound = proc_stepbound;
         cd.proc_progress = proc_progress;
 
-        /* Evaluate the function value and its gradient. */
+        /* Evaluate the function value and its gradient. 求函数值及其梯度 */
         fx = cd.proc_evaluate(cd.instance, x, g);
 
-        /* Store the initial value of the cost function. */
+        /* Store the initial value of the cost function.  记录初始值对应的代价函数*/
         pf(0) = fx;
 
         /*
-        Compute the direction;
+        Compute the direction; 方向
         we assume the initial hessian matrix H_0 as the identity matrix.
         */
         d = -g;
 
         /*
-        Make sure that the initial variables are not a stationary point.
+        Make sure that the initial variables are not a stationary point. 
+        保证初始变量不是静止点
         */
         gnorm_inf = g.cwiseAbs().maxCoeff();
         xnorm_inf = x.cwiseAbs().maxCoeff();
 
         if (gnorm_inf / std::max(1.0, xnorm_inf) < param.g_epsilon)
         {
-            /* The initial guess is already a stationary point. */
+            /* The initial guess is already a stationary point.  初始值就是最优点*/
             ret = LBFGS_CONVERGENCE;
         }
         else
         {
             /* 
-            Compute the initial step:
+            Compute the initial step: 计算初始步长
             */
             step = 1.0 / d.norm();
 
@@ -564,7 +566,8 @@ namespace lbfgs
                     step = step < step_max ? step : 0.5 * step_max;
                 }
 
-                /* Search for an optimal step. */
+                /* Search for an optimal step. 寻找最优步长 */
+                //参数依次为 决策变量，代价函数，梯度，步长，梯度的负，当前决策变量，当前梯度，步长最小值、最大值，cd, param
                 ls = line_search_lewisoverton(x, fx, g, step, d, xp, gp, step_min, step_max, cd, param);
 
                 if (ls < 0)
@@ -620,7 +623,7 @@ namespace lbfgs
                         }
                     }
 
-                    /* Store the current value of the cost function. */
+                    /* Store the current value of the cost function. 记录代价函数当前值*/
                     pf(k % param.past) = fx;
                 }
 
@@ -710,7 +713,7 @@ namespace lbfgs
             }
         }
 
-        /* Return the final value of the cost function. */
+        /* Return the final value of the cost function. 给出代价函数的最终值*/
         f = fx;
 
         return ret;

@@ -359,7 +359,7 @@ public:
         {
             totalDuration += pieces[i].getDuration();
         }
-        return totalDuration;
+        return totalDuration;  //总共的持续时间
     }
 
     inline Eigen::Matrix3Xd getPositions() const

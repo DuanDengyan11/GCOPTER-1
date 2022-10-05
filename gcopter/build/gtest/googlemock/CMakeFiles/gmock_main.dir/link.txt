@@ -1,0 +1,1 @@
+/usr/lib/ccache/c++ -fPIC -std=c++14 -O3 -Wall -fPIC  -shared -Wl,-soname,libgmock_main.so -o ../lib/libgmock_main.so CMakeFiles/gmock_main.dir/src/gmock_main.cc.o  -Wl,-rpath,/mnt/d/FControl/atnus/GAOFEI/src/GCOPTER-1/gcopter/build/gtest/lib ../lib/libgmock.so ../lib/libgtest.so -lpthread 

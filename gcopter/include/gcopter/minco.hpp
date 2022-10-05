@@ -94,7 +94,7 @@ namespace minco
             return ptrData[(i - j + upperBw) * N + j];
         }
 
-        // This function conducts banded LU factorization in place
+        // This function conducts banded LU factorization in place 这个函数将带式LU因式分解到位
         // Note that NO PIVOT is applied on the matrix "A" for efficiency!!!
         inline void factorizeLU()
         {
@@ -132,7 +132,7 @@ namespace minco
 
         // This function solves Ax=b, then stores x in b
         // The input b is required to be N*m, i.e.,
-        // m vectors to be solved.
+        // m vectors to be solved.  求系数C，目前还没有仔细看求解过程
         template <typename EIGENMAT>
         inline void solve(EIGENMAT &b) const
         {
@@ -243,26 +243,26 @@ namespace minco
             A(0, 0) = 1.0;
             A(1, 1) = 1.0;
             b.row(0) = headPV.col(0).transpose();
-            b.row(1) = headPV.col(1).transpose();
+            b.row(1) = headPV.col(1).transpose();  //初始点位置和速度约束
 
             for (int i = 0; i < N - 1; i++)
             {
                 A(4 * i + 2, 4 * i + 2) = 2.0;
                 A(4 * i + 2, 4 * i + 3) = 6.0 * T1(i);
-                A(4 * i + 2, 4 * i + 6) = -2.0;
+                A(4 * i + 2, 4 * i + 6) = -2.0;         //对应论文中M中E1的最后一行
                 A(4 * i + 3, 4 * i) = 1.0;
                 A(4 * i + 3, 4 * i + 1) = T1(i);
                 A(4 * i + 3, 4 * i + 2) = T2(i);
-                A(4 * i + 3, 4 * i + 3) = T3(i);
+                A(4 * i + 3, 4 * i + 3) = T3(i);       //E1第一行
                 A(4 * i + 4, 4 * i) = 1.0;
                 A(4 * i + 4, 4 * i + 1) = T1(i);
                 A(4 * i + 4, 4 * i + 2) = T2(i);
                 A(4 * i + 4, 4 * i + 3) = T3(i);
-                A(4 * i + 4, 4 * i + 4) = -1.0;
+                A(4 * i + 4, 4 * i + 4) = -1.0;       //E2第二行
                 A(4 * i + 5, 4 * i + 1) = 1.0;
                 A(4 * i + 5, 4 * i + 2) = 2.0 * T1(i);
                 A(4 * i + 5, 4 * i + 3) = 3.0 * T2(i);
-                A(4 * i + 5, 4 * i + 5) = -1.0;
+                A(4 * i + 5, 4 * i + 5) = -1.0;       //E2第三行
 
                 b.row(4 * i + 3) = inPs.col(i).transpose();
             }
@@ -273,10 +273,10 @@ namespace minco
             A(4 * N - 2, 4 * N - 1) = T3(N - 1);
             A(4 * N - 1, 4 * N - 3) = 1.0;
             A(4 * N - 1, 4 * N - 2) = 2 * T1(N - 1);
-            A(4 * N - 1, 4 * N - 1) = 3 * T2(N - 1);
+            A(4 * N - 1, 4 * N - 1) = 3 * T2(N - 1);   
 
             b.row(4 * N - 2) = tailPV.col(0).transpose();
-            b.row(4 * N - 1) = tailPV.col(1).transpose();
+            b.row(4 * N - 1) = tailPV.col(1).transpose(); //终止点位置和速度约束
 
             A.factorizeLU();
             A.solve(b);
@@ -301,6 +301,7 @@ namespace minco
 
         inline void getEnergy(double &energy) const
         {
+            //把论文里计算energy的公式积分
             energy = 0.0;
             for (int i = 0; i < N; i++)
             {

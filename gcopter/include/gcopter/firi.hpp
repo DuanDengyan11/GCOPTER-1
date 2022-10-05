@@ -165,7 +165,8 @@ namespace firi
                                    Eigen::Vector3d &p,
                                    Eigen::Vector3d &r)
     {
-        // Find the deepest interior point
+        //R对应论文中A_epsilon，r对应论文里的diag(D_epsilon)
+        // Find the deepest interior point 找到最深的内部点
         const int M = hPoly.rows();
         Eigen::MatrixX4d Alp(M, 4);
         Eigen::VectorXd blp(M);
@@ -181,7 +182,7 @@ namespace firi
         {
             return false;
         }
-        const Eigen::Vector3d interior = xlp.head<3>();
+        const Eigen::Vector3d interior = xlp.head<3>();  //重叠区域具有最大深度的位置
 
         // Prepare the data for MVIE optimization
         uint8_t *optData = new uint8_t[sizeof(int) + (2 + 3 * M) * sizeof(double)];
@@ -198,7 +199,7 @@ namespace firi
         Eigen::VectorXd x(9);
         const Eigen::Matrix3d Q = R * (r.cwiseProduct(r)).asDiagonal() * R.transpose();
         Eigen::Matrix3d L;
-        chol3d(Q, L);
+        chol3d(Q, L); //cholesky分解求L
 
         x.head<3>() = p - interior;
         x(3) = sqrt(L(0, 0));
@@ -241,10 +242,10 @@ namespace firi
         L(2, 0) = x(8);
         L(2, 1) = x(7);
         L(2, 2) = x(5) * x(5);
-        Eigen::JacobiSVD<Eigen::Matrix3d, Eigen::FullPivHouseholderQRPreconditioner> svd(L, Eigen::ComputeFullU);
+        Eigen::JacobiSVD<Eigen::Matrix3d, Eigen::FullPivHouseholderQRPreconditioner> svd(L, Eigen::ComputeFullU);  //svd奇异值分解
         const Eigen::Matrix3d U = svd.matrixU();
         const Eigen::Vector3d S = svd.singularValues();
-        if (U.determinant() < 0.0)
+        if (U.determinant() < 0.0) //determinant 行列式
         {
             R.col(0) = U.col(1);
             R.col(1) = U.col(0);
@@ -300,8 +301,8 @@ namespace firi
             const Eigen::Vector3d fwd_a = forward * (a - p);
             const Eigen::Vector3d fwd_b = forward * (b - p);
 
-            const Eigen::VectorXd distDs = forwardD.cwiseAbs().cwiseQuotient(forwardB.rowwise().norm());
-            Eigen::MatrixX4d tangents(N, 4);
+            const Eigen::VectorXd distDs = forwardD.cwiseAbs().cwiseQuotient(forwardB.rowwise().norm()); //quotient商
+            Eigen::MatrixX4d tangents(N, 4); //tangent相切
             Eigen::VectorXd distRs(N);
 
             for (int i = 0; i < N; i++)
@@ -395,7 +396,7 @@ namespace firi
                     }
                 }
                 ++nH;
-            }
+            } //算法一里的受约束膨胀的线性复杂度随机化算法求解
 
             hPoly.resize(nH, 4);
             for (int i = 0; i < nH; ++i)
@@ -409,7 +410,7 @@ namespace firi
                 break;
             }
 
-            maxVolInsEllipsoid(hPoly, R, p, r);
+            maxVolInsEllipsoid(hPoly, R, p, r); //根据hPoly更新R p r，计算最大椭球体？R = A_epsilon, p = b_epsilon, diag(r) = D_epsilon
         }
 
         return true;

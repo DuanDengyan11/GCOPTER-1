@@ -43,13 +43,13 @@ namespace sfc_gen
 {
 
     template <typename Map>
-    inline double planPath(const Eigen::Vector3d &s,
-                           const Eigen::Vector3d &g,
-                           const Eigen::Vector3d &lb,
-                           const Eigen::Vector3d &hb,
-                           const Map *mapPtr,
-                           const double &timeout,
-                           std::vector<Eigen::Vector3d> &p)
+    inline double planPath(const Eigen::Vector3d &s,  //初始位置
+                           const Eigen::Vector3d &g,  //目标位置
+                           const Eigen::Vector3d &lb, //地图原点：坐标最小值
+                           const Eigen::Vector3d &hb, //地图坐标最大值
+                           const Map *mapPtr,  //地图
+                           const double &timeout, //时间
+                           std::vector<Eigen::Vector3d> &p) //路线
     {
         auto space(std::make_shared<ompl::base::RealVectorStateSpace>(3));
 
@@ -60,7 +60,7 @@ namespace sfc_gen
         bounds.setHigh(1, hb(1) - lb(1));
         bounds.setLow(2, 0.0);
         bounds.setHigh(2, hb(2) - lb(2));
-        space->setBounds(bounds);
+        space->setBounds(bounds);  //设置地图界限
 
         auto si(std::make_shared<ompl::base::SpaceInformation>(space));
 
@@ -72,22 +72,22 @@ namespace sfc_gen
                                                lb(1) + (*pos)[1],
                                                lb(2) + (*pos)[2]);
                 return mapPtr->query(position) == 0;
-            });
+            });  //判断状态是否处于可行域，相当于优化过程中的约束
         si->setup();
 
         ompl::msg::setLogLevel(ompl::msg::LOG_NONE);
 
         ompl::base::ScopedState<> start(space), goal(space);
-        start[0] = s(0) - lb(0);
-        start[1] = s(1) - lb(1);
+        start[0] = s(0) - lb(0);   //初始值
+        start[1] = s(1) - lb(1);   
         start[2] = s(2) - lb(2);
-        goal[0] = g(0) - lb(0);
+        goal[0] = g(0) - lb(0);   //目标值
         goal[1] = g(1) - lb(1);
         goal[2] = g(2) - lb(2);
 
         auto pdef(std::make_shared<ompl::base::ProblemDefinition>(si));
         pdef->setStartAndGoalStates(start, goal);
-        pdef->setOptimizationObjective(std::make_shared<ompl::base::PathLengthOptimizationObjective>(si));
+        pdef->setOptimizationObjective(std::make_shared<ompl::base::PathLengthOptimizationObjective>(si)); //路径最小目标函数
         auto planner(std::make_shared<ompl::geometric::InformedRRTstar>(si));
         planner->setProblemDefinition(pdef);
         planner->setup();
@@ -113,13 +113,13 @@ namespace sfc_gen
         return cost;
     }
 
-    inline void convexCover(const std::vector<Eigen::Vector3d> &path,
-                            const std::vector<Eigen::Vector3d> &points,
-                            const Eigen::Vector3d &lowCorner,
-                            const Eigen::Vector3d &highCorner,
-                            const double &progress,
-                            const double &range,
-                            std::vector<Eigen::MatrixX4d> &hpolys,
+    inline void convexCover(const std::vector<Eigen::Vector3d> &path,   //路径
+                            const std::vector<Eigen::Vector3d> &points, //障碍物
+                            const Eigen::Vector3d &lowCorner,  //地图坐标最小值
+                            const Eigen::Vector3d &highCorner, //地图坐标最大值
+                            const double &progress, //进步
+                            const double &range, //范围
+                            std::vector<Eigen::MatrixX4d> &hpolys, //可行域：凸多面体的集合
                             const double eps = 1.0e-6)
     {
         hpolys.clear();
@@ -161,14 +161,14 @@ namespace sfc_gen
             valid_pc.clear();
             for (const Eigen::Vector3d &p : points)
             {
-                if ((bd.leftCols<3>() * p + bd.rightCols<1>()).maxCoeff() < 0.0)
+                if ((bd.leftCols<3>() * p + bd.rightCols<1>()).maxCoeff() < 0.0) //判断障碍物是否在有效范围内
                 {
-                    valid_pc.emplace_back(p);
+                    valid_pc.emplace_back(p);  
                 }
             }
-            Eigen::Map<const Eigen::Matrix<double, 3, -1, Eigen::ColMajor>> pc(valid_pc[0].data(), 3, valid_pc.size());
+            Eigen::Map<const Eigen::Matrix<double, 3, -1, Eigen::ColMajor>> pc(valid_pc[0].data(), 3, valid_pc.size()); //将valid_pc按3行 valid_pc.size()列重写
 
-            firi::firi(bd, pc, a, b, hp);
+            firi::firi(bd, pc, a, b, hp); //最大内接椭球计算和线性复杂度随机化算法 计算hp可行域
 
             if (hpolys.size() != 0)
             {
@@ -185,7 +185,7 @@ namespace sfc_gen
         }
     }
 
-    inline void shortCut(std::vector<Eigen::MatrixX4d> &hpolys)
+    inline void shortCut(std::vector<Eigen::MatrixX4d> &hpolys) //简化
     {
         std::vector<Eigen::MatrixX4d> htemp = hpolys;
         if (htemp.size() == 1)

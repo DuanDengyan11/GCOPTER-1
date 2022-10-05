@@ -114,11 +114,15 @@ public:
 
     inline void mapCallBack(const sensor_msgs::PointCloud2::ConstPtr &msg)
     {
+        //按目前推理，fdata应该是障碍物的位置
         if (!mapInitialized)
         {
             size_t cur = 0;
             const size_t total = msg->data.size() / msg->point_step;
+            ROS_INFO("point_step %d, data_size %ld",  msg->point_step, msg->data.size());
             float *fdata = (float *)(&msg->data[0]);
+            int i = 20;
+            ROS_INFO("fdata %f, %f, %f, %f, %f, %f, %f, %f",  fdata[i+0], fdata[i+1], fdata[i+2], fdata[i+3], fdata[i+4], fdata[i+5], fdata[i+6], fdata[i+7]);
             for (size_t i = 0; i < total; i++)
             {
                 cur = msg->point_step / sizeof(float) * i;
@@ -134,7 +138,7 @@ public:
                                                      fdata[cur + 2]));
             }
 
-            voxelMap.dilate(std::ceil(config.dilateRadius / voxelMap.getScale()));
+            voxelMap.dilate(std::ceil(config.dilateRadius / voxelMap.getScale())); //没看明白这么为什么要dilate
 
             mapInitialized = true;
         }
@@ -142,6 +146,7 @@ public:
 
     inline void plan()
     {
+        // generate feasible region
         if (startGoal.size() == 2)
         {
             std::vector<Eigen::Vector3d> route;
@@ -150,19 +155,19 @@ public:
                                                    voxelMap.getOrigin(),
                                                    voxelMap.getCorner(),
                                                    &voxelMap, 0.01,
-                                                   route);
+                                                   route);   //得到了route可行路径
             std::vector<Eigen::MatrixX4d> hPolys;
             std::vector<Eigen::Vector3d> pc;
             voxelMap.getSurf(pc);
 
-            sfc_gen::convexCover(route,
-                                 pc,
+            sfc_gen::convexCover(route,  //可行路径
+                                 pc,     //障碍物
                                  voxelMap.getOrigin(),
                                  voxelMap.getCorner(),
                                  7.0,
                                  3.0,
-                                 hPolys);
-            sfc_gen::shortCut(hPolys);
+                                 hPolys);   //根据route可行路径生成安全飞行走廊hPolys
+            sfc_gen::shortCut(hPolys);  //进一步简化hPolys
 
             if (route.size() > 1)
             {
@@ -233,7 +238,7 @@ public:
     {
         if (mapInitialized)
         {
-            if (startGoal.size() >= 2)
+            if (startGoal.size() >= 2)  //只能给两个点：起点和终点
             {
                 startGoal.clear();
             }
@@ -243,7 +248,7 @@ public:
             const Eigen::Vector3d goal(msg->pose.position.x, msg->pose.position.y, zGoal);
             if (voxelMap.query(goal) == 0)
             {
-                visualizer.visualizeStartGoal(goal, 0.5, startGoal.size());
+                visualizer.visualizeStartGoal(goal, 0.5, startGoal.size()); //将目标点可视化表示
                 startGoal.emplace_back(goal);
             }
             else
@@ -279,14 +284,14 @@ public:
                 Eigen::Vector4d quat;
                 Eigen::Vector3d omg;
 
-                flatmap.forward(traj.getVel(delta),
-                                traj.getAcc(delta),
-                                traj.getJer(delta),
+                flatmap.forward(traj.getVel(delta), //速度
+                                traj.getAcc(delta), //加速度
+                                traj.getJer(delta), //加速度的导数
                                 0.0, 0.0,
                                 thr, quat, omg);
-                double speed = traj.getVel(delta).norm();
-                double bodyratemag = omg.norm();
-                double tiltangle = acos(1.0 - 2.0 * (quat(1) * quat(1) + quat(2) * quat(2)));
+                double speed = traj.getVel(delta).norm(); //速度
+                double bodyratemag = omg.norm(); //角速度
+                double tiltangle = acos(1.0 - 2.0 * (quat(1) * quat(1) + quat(2) * quat(2))); //倾斜角
                 std_msgs::Float64 speedMsg, thrMsg, tiltMsg, bdrMsg;
                 speedMsg.data = speed;
                 thrMsg.data = thr;

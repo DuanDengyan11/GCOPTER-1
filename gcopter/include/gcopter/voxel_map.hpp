@@ -95,7 +95,7 @@ namespace voxel_map
 
         inline void setOccupied(const Eigen::Vector3d &pos)
         {
-            const Eigen::Vector3i id = ((pos - o) / scale).cast<int>();
+            const Eigen::Vector3i id = ((pos - o) / scale).cast<int>();  //.cast转换符号
             if (id(0) >= 0 && id(1) >= 0 && id(2) >= 0 &&
                 id(0) < mapSize(0) && id(1) < mapSize(1) && id(2) < mapSize(2))
             {
@@ -137,7 +137,7 @@ namespace voxel_map
                                               x, y, z,
                                               step(1), step(2),
                                               bounds(0), bounds(1), bounds(2),
-                                              check, voxels, idx, Dilated, cvec)
+                                              check, voxels, idx, Dilated, cvec)  //是障碍物的点才会dilate
                             }
                         }
                     }
@@ -171,7 +171,7 @@ namespace voxel_map
                     std::abs(id(1) / step(1) - center(1)) <= halfWidth &&
                     std::abs(id(2) / step(2) - center(2)) <= halfWidth)
                 {
-                    points.push_back(id.cast<double>().cwiseProduct(stepScale) + oc);
+                    points.push_back(id.cast<double>().cwiseProduct(stepScale) + oc);//返回在box里的surf位置
                 }
             }
 
@@ -183,7 +183,7 @@ namespace voxel_map
             points.reserve(surf.size());
             for (const Eigen::Vector3i &id : surf)
             {
-                points.push_back(id.cast<double>().cwiseProduct(stepScale) + oc);
+                points.push_back(id.cast<double>().cwiseProduct(stepScale) + oc); //返回surf位置
             }
             return;
         }

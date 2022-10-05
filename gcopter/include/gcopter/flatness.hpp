@@ -41,11 +41,11 @@ namespace flatness
                           const double &parasitic_drag_coeff,
                           const double &speed_smooth_factor)
         {
-            mass = vehicle_mass;
-            grav = gravitational_acceleration;
+            mass = vehicle_mass; //质量
+            grav = gravitational_acceleration; 
             dh = horitonral_drag_coeff;
             dv = vertical_drag_coeff;
-            cp = parasitic_drag_coeff;
+            cp = parasitic_drag_coeff; //寄生阻力系数
             veps = speed_smooth_factor;
 
             return;

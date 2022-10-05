@@ -136,7 +136,7 @@ namespace geo_utils
         quickhull::QuickHull<double> qh;
         const double qhullEps = std::min(epsilon, quickhull::defaultEps<double>());
         // CCW is false because the normal in quickhull towards interior
-        const auto cvxHull = qh.getConvexHull(A.data(), A.cols(), false, true, qhullEps);
+        const auto cvxHull = qh.getConvexHull(A.data(), A.cols(), false, true, qhullEps);//get 凸包
         const auto &idBuffer = cvxHull.getIndexBuffer();
         const int hNum = idBuffer.size() / 3;
         Eigen::Matrix3Xd rV(3, hNum);
@@ -162,7 +162,7 @@ namespace geo_utils
                             const double epsilon = 1.0e-6)
     {
         Eigen::Vector3d inner;
-        if (findInterior(hPoly, inner))
+        if (findInterior(hPoly, inner)) //内心
         {
             enumerateVs(hPoly, inner, vPoly, epsilon);
             return true;

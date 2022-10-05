@@ -66,8 +66,8 @@ namespace gcopter
         int polyN;
         int pieceN;
 
-        int spatialDim;
-        int temporalDim;
+        int spatialDim; //空间维度
+        int temporalDim; //时间维度
 
         double smoothEps;
         int integralRes;
@@ -255,7 +255,7 @@ namespace gcopter
                 gradQ.head(k - 1) = (vPolys[l].rightCols(k - 1).transpose() * gradP.col(i)).array() *
                                     unitQ.head(k - 1).array() * 2.0;
                 gradQ(k - 1) = 0.0;
-                gradXi.segment(j, k) = (gradQ - unitQ * unitQ.dot(gradQ)) * normInv;
+                gradXi.segment(j, k) = (gradQ - unitQ * unitQ.dot(gradQ)) * normInv;  //这个求导的方式目前没看懂
             }
 
             return;
@@ -279,7 +279,7 @@ namespace gcopter
 
                 q = xi.segment(j, k);
                 sqrNormQ = q.squaredNorm();
-                sqrNormViolation = sqrNormQ - 1.0;
+                sqrNormViolation = sqrNormQ - 1.0;  //不能大于1
                 if (sqrNormViolation > 0.0)
                 {
                     c = sqrNormViolation * sqrNormViolation;
@@ -495,7 +495,7 @@ namespace gcopter
                                     obj.hPolyIdx, obj.hPolytopes,
                                     obj.smoothEps, obj.integralRes,
                                     obj.magnitudeBd, obj.penaltyWt, obj.flatmap,
-                                    cost, obj.partialGradByTimes, obj.partialGradByCoeffs);
+                                    cost, obj.partialGradByTimes, obj.partialGradByCoeffs); 
 
             obj.minco.propogateGrad(obj.partialGradByCoeffs, obj.partialGradByTimes,
                                     obj.gradByPoints, obj.gradByTimes);
@@ -536,7 +536,7 @@ namespace gcopter
                     Eigen::Map<const Eigen::VectorXd> q(xi.data() + j, k);
                     r = q.normalized().head(k - 1);
                     b = vPolys[2 * i + 1].rightCols(k - 1) * r.cwiseProduct(r) +
-                        vPolys[2 * i + 1].col(0);
+                        vPolys[2 * i + 1].col(0);  //凸形式表示的点
                 }
                 else
                 {
@@ -596,7 +596,7 @@ namespace gcopter
             Eigen::VectorXi vSizes(overlaps);
             for (int i = 0; i < overlaps; i++)
             {
-                vSizes(i) = vPolys[2 * i + 1].cols();
+                vSizes(i) = vPolys[2 * i + 1].cols(); //.cols返回列数 重叠区的凸点个数
             }
             Eigen::VectorXd xi(vSizes.sum());
             for (int i = 0, j = 0; i < overlaps; i++)
@@ -694,7 +694,8 @@ namespace gcopter
                                       const double &speed,
                                       const Eigen::VectorXi &intervalNs,
                                       Eigen::Matrix3Xd &innerPoints,
-                                      Eigen::VectorXd &timeAlloc)
+                                      Eigen::VectorXd &timeAlloc) 
+        //设置初始值     setInitial(shortPath, allocSpeed, pieceIdx, points, times);
         {
             const int sizeM = intervalNs.size();
             const int sizeN = intervalNs.sum();
@@ -726,11 +727,11 @@ namespace gcopter
         // physicalParams = [vehicle_mass, gravitational_acceleration, horitonral_drag_coeff,
         //                   vertical_drag_coeff, parasitic_drag_coeff, speed_smooth_factor]^T
         inline bool setup(const double &timeWeight,
-                          const Eigen::Matrix3d &initialPVA,
-                          const Eigen::Matrix3d &terminalPVA,
-                          const PolyhedraH &safeCorridor,
-                          const double &lengthPerPiece,
-                          const double &smoothingFactor,
+                          const Eigen::Matrix3d &initialPVA, //起始点状态
+                          const Eigen::Matrix3d &terminalPVA, //终点状态
+                          const PolyhedraH &safeCorridor,  //安全走廊
+                          const double &lengthPerPiece,  //无限
+                          const double &smoothingFactor,  
                           const int &integralResolution,
                           const Eigen::VectorXd &magnitudeBounds,
                           const Eigen::VectorXd &penaltyWeights,
@@ -747,23 +748,23 @@ namespace gcopter
                     hPolytopes[i].leftCols<3>().rowwise().norm();
                 hPolytopes[i].array().colwise() /= norms;
             }
-            if (!processCorridor(hPolytopes, vPolytopes))
+            if (!processCorridor(hPolytopes, vPolytopes))  //方便后续操作 对于vPoly来说，0是第一个hpoly, 1是相邻两个hPoly的交集
             {
                 return false;
             }
 
             polyN = hPolytopes.size();
-            smoothEps = smoothingFactor;
-            integralRes = integralResolution;
+            smoothEps = smoothingFactor;  //SmoothingEps = 1.0e-2
+            integralRes = integralResolution; //IntegralIntervs = 16
             magnitudeBd = magnitudeBounds;
             penaltyWt = penaltyWeights;
             physicalPm = physicalParams;
-            allocSpeed = magnitudeBd(0) * 3.0;
+            allocSpeed = magnitudeBd(0) * 3.0; //最大速度限制×3？
 
             getShortestPath(headPVA.col(0), tailPVA.col(0),
-                            vPolytopes, smoothEps, shortPath);
+                            vPolytopes, smoothEps, shortPath); //计算最短路径shortPath
             const Eigen::Matrix3Xd deltas = shortPath.rightCols(polyN) - shortPath.leftCols(polyN);
-            pieceIdx = (deltas.colwise().norm() / lengthPerPiece).cast<int>().transpose();
+            pieceIdx = (deltas.colwise().norm() / lengthPerPiece).cast<int>().transpose(); //transpose转置
             pieceIdx.array() += 1;
             pieceN = pieceIdx.sum();
 
@@ -810,12 +811,13 @@ namespace gcopter
                                const double &relCostTol)
         {
             Eigen::VectorXd x(temporalDim + spatialDim);
-            Eigen::Map<Eigen::VectorXd> tau(x.data(), temporalDim);
+            Eigen::Map<Eigen::VectorXd> tau(x.data(), temporalDim); //.data返回所指的数组内存中第一个元素的指针
             Eigen::Map<Eigen::VectorXd> xi(x.data() + temporalDim, spatialDim);
 
-            setInitial(shortPath, allocSpeed, pieceIdx, points, times);
-            backwardT(times, tau);
-            backwardP(points, vPolyIdx, vPolytopes, xi);
+            //首先是据shortPath生成初始x值
+            setInitial(shortPath, allocSpeed, pieceIdx, points, times); //以shortPath作为初始优化值
+            backwardT(times, tau);  //时间流形约束满足
+            backwardP(points, vPolyIdx, vPolytopes, xi);  //凸多面体几何约束自动满足
 
             double minCostFunctional;
             lbfgs_params.mem_size = 256;

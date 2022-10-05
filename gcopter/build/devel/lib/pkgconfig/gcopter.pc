@@ -1,0 +1,8 @@
+prefix=/mnt/d/FControl/atnus/GAOFEI/src/GCOPTER-1/gcopter/build/devel
+
+Name: gcopter
+Description: Description of gcopter
+Version: 0.1.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
